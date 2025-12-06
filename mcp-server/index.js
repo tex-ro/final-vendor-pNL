@@ -73,19 +73,61 @@ async function getUserData(userId, path) {
 
 // Helper function to reconstruct batched data
 function reconstructBatchedData(batchedData) {
-  if (!batchedData || !batchedData.meta) return [];
+  // Handle null/undefined
+  if (!batchedData) return [];
 
-  const { totalBatches } = batchedData.meta;
-  let allData = [];
-
-  for (let i = 0; i < totalBatches; i++) {
-    const batchKey = `batch_${i}`;
-    if (batchedData[batchKey]) {
-      allData = allData.concat(batchedData[batchKey]);
-    }
+  // Handle direct array format
+  if (Array.isArray(batchedData)) {
+    return batchedData;
   }
 
-  return allData;
+  // Handle object format
+  if (typeof batchedData === 'object') {
+    let allData = [];
+
+    // If meta exists, use it to know how many batches
+    if (batchedData.meta && batchedData.meta.totalBatches) {
+      const { totalBatches } = batchedData.meta;
+      for (let i = 0; i < totalBatches; i++) {
+        const batchKey = `batch_${i}`;
+        if (batchedData[batchKey] && Array.isArray(batchedData[batchKey])) {
+          allData = allData.concat(batchedData[batchKey]);
+        }
+      }
+    } else {
+      // No meta object - scan for all batch_* keys
+      const keys = Object.keys(batchedData);
+      const batchKeys = keys.filter(key => key.startsWith('batch_'));
+
+      // Sort batch keys numerically (batch_0, batch_1, batch_2, ...)
+      batchKeys.sort((a, b) => {
+        const numA = parseInt(a.split('_')[1]) || 0;
+        const numB = parseInt(b.split('_')[1]) || 0;
+        return numA - numB;
+      });
+
+      // Concatenate all batches
+      for (const batchKey of batchKeys) {
+        if (Array.isArray(batchedData[batchKey])) {
+          allData = allData.concat(batchedData[batchKey]);
+        }
+      }
+
+      // If no batch keys found, check if it's a direct object with data
+      if (allData.length === 0 && keys.length > 0 && !keys.includes('meta')) {
+        // This might be a direct object (not batched)
+        // Convert object values to array if they look like data items
+        const values = Object.values(batchedData);
+        if (values.length > 0 && typeof values[0] === 'object') {
+          return values;
+        }
+      }
+    }
+
+    return allData;
+  }
+
+  return [];
 }
 
 // Helper function to calculate P&L metrics
@@ -104,7 +146,7 @@ function calculatePnLMetrics(asinData, invoiceData, advertisingData) {
   // Calculate revenue from ASIN data
   if (Array.isArray(asinData)) {
     asinData.forEach(asin => {
-      const revenue = parseFloat(asin.revenue || asin.totalRevenue || 0);
+      const revenue = parseFloat(asin.revenue || asin.totalRevenue || asin.sales || 0);
       metrics.totalRevenue += revenue;
     });
   }
@@ -112,16 +154,37 @@ function calculatePnLMetrics(asinData, invoiceData, advertisingData) {
   // Calculate COGS from invoice data
   if (Array.isArray(invoiceData)) {
     invoiceData.forEach(invoice => {
-      const cogs = parseFloat(invoice.cogs || invoice.totalCost || 0);
-      metrics.totalCOGS += cogs;
+      // Support multiple field name formats
+      let cost = 0;
+
+      if (invoice.cogs) {
+        cost = parseFloat(invoice.cogs);
+      } else if (invoice.totalCost) {
+        cost = parseFloat(invoice.totalCost);
+      } else if (invoice.itemPrice && invoice.quantity) {
+        // Calculate from itemPrice * quantity
+        const price = parseFloat(invoice.itemPrice);
+        const qty = parseFloat(invoice.quantity);
+        cost = price * qty;
+      } else if (invoice.amount) {
+        cost = parseFloat(invoice.amount);
+      }
+
+      metrics.totalCOGS += cost || 0;
     });
   }
 
-  // Calculate advertising costs
+  // Calculate advertising costs and revenue
   if (Array.isArray(advertisingData)) {
     advertisingData.forEach(ad => {
       const spend = parseFloat(ad.spend || ad.adSpend || 0);
       metrics.totalAdvertising += spend;
+
+      // Also get revenue from advertising data if ASIN data is not available
+      if (!asinData || asinData.length === 0) {
+        const sales = parseFloat(ad.sales || ad.revenue || 0);
+        metrics.totalRevenue += sales;
+      }
     });
   }
 

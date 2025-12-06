@@ -160,16 +160,41 @@ try {
 
           // Reconstruct batched data
           function reconstructBatchedData(batchedData) {
-            if (!batchedData || !batchedData.meta) return [];
-            const { totalBatches } = batchedData.meta;
-            let allData = [];
-            for (let i = 0; i < totalBatches; i++) {
-              const batchKey = `batch_${i}`;
-              if (batchedData[batchKey]) {
-                allData = allData.concat(batchedData[batchKey]);
+            if (!batchedData) return [];
+            if (Array.isArray(batchedData)) return batchedData;
+
+            if (typeof batchedData === 'object') {
+              let allData = [];
+
+              // If meta exists, use it
+              if (batchedData.meta && batchedData.meta.totalBatches) {
+                const { totalBatches } = batchedData.meta;
+                for (let i = 0; i < totalBatches; i++) {
+                  const batchKey = `batch_${i}`;
+                  if (batchedData[batchKey] && Array.isArray(batchedData[batchKey])) {
+                    allData = allData.concat(batchedData[batchKey]);
+                  }
+                }
+              } else {
+                // No meta - scan for batch_* keys
+                const keys = Object.keys(batchedData);
+                const batchKeys = keys.filter(key => key.startsWith('batch_')).sort();
+                for (const batchKey of batchKeys) {
+                  if (Array.isArray(batchedData[batchKey])) {
+                    allData = allData.concat(batchedData[batchKey]);
+                  }
+                }
+                // If no batches, try direct object
+                if (allData.length === 0 && keys.length > 0) {
+                  const values = Object.values(batchedData);
+                  if (values.length > 0 && typeof values[0] === 'object') {
+                    return values;
+                  }
+                }
               }
+              return allData;
             }
-            return allData;
+            return [];
           }
 
           const asinArray = reconstructBatchedData(asinData);
