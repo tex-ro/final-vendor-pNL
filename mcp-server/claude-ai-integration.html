@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude AI MCP Integration Helper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #495057;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 24px;
+        }
+
+        .info-box {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #212529;
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn:active {
+            transform: scale(0.98);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .step-content p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .vendors-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .vendor-badge {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .alert {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .alert strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Claude AI MCP Integration</h1>
+        <p class="subtitle">Your P&L Management Software is now ready to connect with Claude AI</p>
+
+        <!-- User Info Section -->
+        <div class="section">
+            <h2><span class="icon">👤</span> Your User Information</h2>
+            <div class="info-box">
+                <div class="info-label">Firebase User ID (UID)</div>
+                <div class="info-value" id="userId">Loading...</div>
+                <button class="copy-btn" onclick="copyUserId()">📋 Copy User ID</button>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Email Address</div>
+                <div class="info-value" id="userEmail">Loading...</div>
+            </div>
+            <div class="alert">
+                <strong>Important:</strong> You'll need your User ID when talking to Claude AI. Click the copy button above to save it!
+            </div>
+        </div>
+
+        <!-- MCP Server Status -->
+        <div class="section">
+            <h2><span class="icon">🔌</span> MCP Server Setup</h2>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Install Dependencies</h3>
+                    <p>Open terminal and run:</p>
+                    <div class="code-block">cd /home/user/final-vendor-pNL/mcp-server<br>npm install</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Get Firebase Service Account Key</h3>
+                    <p>Download from <a href="https://console.firebase.google.com/project/pnl-amzon/settings/serviceaccounts/adminsdk" target="_blank">Firebase Console</a></p>
+                    <p>Save as <span class="highlight">firebase-service-account.json</span> in the mcp-server folder</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Configure Claude Desktop</h3>
+                    <p>Add this to your Claude Desktop config:</p>
+                    <div class="code-block" id="claudeConfig">Loading...</div>
+                    <button class="copy-btn" onclick="copyConfig()">📋 Copy Configuration</button>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Restart Claude Desktop</h3>
+                    <p>Close and reopen Claude Desktop. Look for the hammer icon 🔨</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Test -->
+        <div class="section">
+            <h2><span class="icon">🧪</span> Test Your Setup</h2>
+            <p style="color: #666; margin-bottom: 15px;">Once connected to Claude AI, try these questions:</p>
+
+            <div class="info-box">
+                <div class="info-label">Example Query 1</div>
+                <div class="info-value" id="query1">Loading...</div>
+                <button class="copy-btn" onclick="copyQuery(1)">📋 Copy Query</button>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">Example Query 2</div>
+                <div class="info-value" id="query2">Loading...</div>
+                <button class="copy-btn" onclick="copyQuery(2)">📋 Copy Query</button>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">Example Query 3</div>
+                <div class="info-value" id="query3">Loading...</div>
+                <button class="copy-btn" onclick="copyQuery(3)">📋 Copy Query</button>
+            </div>
+        </div>
+
+        <!-- Available Features -->
+        <div class="section">
+            <h2><span class="icon">✨</span> What Claude AI Can Do</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
+                    <strong>P&L Analysis</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">Complete profit & loss breakdown with margins</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">🎯</div>
+                    <strong>Product Performance</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">Top ASINs and product analytics</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">📈</div>
+                    <strong>Ad Analytics</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">ROAS, ACOS, CTR, and CVR metrics</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">💡</div>
+                    <strong>AI Insights</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">Smart recommendations and trends</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">💰</div>
+                    <strong>ROI Calculation</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">Return on investment analysis</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">🔍</div>
+                    <strong>Anomaly Detection</strong>
+                    <p style="color: #666; font-size: 14px; margin-top: 5px;">Identify unusual patterns and issues</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8n7E0gJvshWoggZclQiggshjnT_62ZEs",
+            authDomain: "pnl-amzon.firebaseapp.com",
+            databaseURL: "https://pnl-amzon-default-rtdb.firebaseio.com",
+            projectId: "pnl-amzon",
+            storageBucket: "pnl-amzon.firebasestorage.app",
+            messagingSenderId: "169823049506",
+            appId: "1:169823049506:web:00dc31c2f95f2c7c24cd94",
+            measurementId: "G-QW96EDTFB5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        let currentUserId = '';
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                document.getElementById('userId').textContent = user.uid;
+                document.getElementById('userEmail').textContent = user.email || 'No email';
+
+                // Update Claude config
+                const configPath = process.platform === 'darwin'
+                    ? '~/Library/Application Support/Claude/claude_desktop_config.json'
+                    : process.platform === 'win32'
+                    ? '%APPDATA%\\Claude\\claude_desktop_config.json'
+                    : '~/.config/Claude/claude_desktop_config.json';
+
+                const config = `{
+  "mcpServers": {
+    "pnl-management": {
+      "command": "node",
+      "args": [
+        "/home/user/final-vendor-pNL/mcp-server/index.js"
+      ]
+    }
+  }
+}`;
+
+                document.getElementById('claudeConfig').textContent = config;
+
+                // Update example queries
+                document.getElementById('query1').textContent =
+                    `List my vendors. User ID: ${user.uid}`;
+
+                document.getElementById('query2').textContent =
+                    `Analyze profit and loss for E-Trade vendor. User ID: ${user.uid}`;
+
+                document.getElementById('query3').textContent =
+                    `Give me business insights and recommendations. User ID: ${user.uid}`;
+
+            } else {
+                document.getElementById('userId').textContent = 'Not logged in - Please login to INDEX.html first';
+                document.getElementById('userEmail').textContent = 'N/A';
+            }
+        });
+
+        window.copyUserId = function() {
+            const userId = document.getElementById('userId').textContent;
+            navigator.clipboard.writeText(userId);
+            alert('User ID copied to clipboard!');
+        };
+
+        window.copyConfig = function() {
+            const config = document.getElementById('claudeConfig').textContent;
+            navigator.clipboard.writeText(config);
+            alert('Configuration copied to clipboard!');
+        };
+
+        window.copyQuery = function(num) {
+            const query = document.getElementById('query' + num).textContent;
+            navigator.clipboard.writeText(query);
+            alert('Query copied to clipboard!');
+        };
+    </script>
+</body>
+</html>
