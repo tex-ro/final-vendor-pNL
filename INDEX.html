@@ -550,6 +550,10 @@ grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+.grid-cols-5 {
+grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .alert {
 padding: 1rem;
 border-radius: 0.5rem;
@@ -3944,13 +3948,14 @@ const totalCost = monthlyData.reduce((sum, m) => sum + m.totalCost, 0);
 const totalAdSpend = monthlyData.reduce((sum, m) => sum + m.adSpend, 0);
 const totalProfit = monthlyData.reduce((sum, m) => sum + m.profit, 0);
 const totalVretCogs = monthlyData.reduce((sum, m) => sum + m.vretCogsCombined, 0);
+const totalFreight = monthlyData.reduce((sum, m) => sum + m.freight, 0);
 const totalFinalProfit = monthlyData.reduce((sum, m) => sum + m.finalProfit, 0);
 const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 const avgFinalMargin = totalRevenue > 0 ? (totalFinalProfit / totalRevenue) * 100 : 0;
 const bestMonth = monthlyData.reduce((max, m) => m.finalProfit > max.finalProfit ? m : max, monthlyData[0]);
 
 html += `
-<div class="grid grid-cols-4 mb-4">
+<div class="grid grid-cols-5 mb-4">
 <div class="stat-card" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
 <div class="stat-label">Total Revenue</div>
 <div class="stat-value">${formatCurrency(totalRevenue)}</div>
@@ -3960,6 +3965,11 @@ html += `
 <div class="stat-label">Total VRET & COGS</div>
 <div class="stat-value">${formatCurrency(totalVretCogs)}</div>
 <div class="stat-subtitle">Returns & Discounts</div>
+</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+<div class="stat-label">Total Freight</div>
+<div class="stat-value">${formatCurrency(totalFreight)}</div>
+<div class="stat-subtitle">Shipping & Logistics</div>
 </div>
 <div class="stat-card" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
 <div class="stat-label">Final Profit</div>
@@ -3988,6 +3998,7 @@ html += `
 <th class="text-right">Ad Spend</th>
 <th class="text-right">Profit</th>
 <th class="text-right">VRET & COGS</th>
+<th class="text-right">Freight</th>
 <th class="text-right">Final Profit</th>
 <th class="text-right">Margin %</th>
 </tr>
@@ -4004,6 +4015,9 @@ ${formatCurrency(month.profit)}
 </td>
 <td class="text-right text-red">
 ${formatCurrency(month.vretCogsCombined)}
+</td>
+<td class="text-right text-red">
+${formatCurrency(month.freight)}
 </td>
 <td class="text-right ${month.finalProfit >= 0 ? 'text-green' : 'text-red'} font-semibold" style="background: ${month.finalProfit >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
 ${formatCurrency(month.finalProfit)}
@@ -4220,9 +4234,9 @@ a.click();
 
 function exportMonthlyPLData() {
 const data = getMonthlyProfitabilityEnhanced();
-let csv = 'Month,Year,Revenue,Cost,Ad Spend,Profit,Margin %,ROI %\n';
+let csv = 'Month,Year,Revenue,Cost,Ad Spend,Profit,VRET & COGS,Freight,Final Profit,Final Margin %,ROI %\n';
 data.forEach(m => {
-csv += `${m.month},${m.year},${m.revenue},${m.totalCost},${m.adSpend},${m.profit},${m.marginPercent.toFixed(2)},${m.roi.toFixed(2)}\n`;
+csv += `${m.month},${m.year},${m.revenue},${m.totalCost},${m.adSpend},${m.profit},${m.vretCogsCombined},${m.freight},${m.finalProfit},${m.finalMarginPercent.toFixed(2)},${m.roi.toFixed(2)}\n`;
 });
 const blob = new Blob([csv], { type: 'text/csv' });
 const url = window.URL.createObjectURL(blob);
@@ -4296,9 +4310,11 @@ monthIndex: date.getMonth(),
 revenue: 0,
 totalCost: 0,
 adSpend: 0,
+freight: 0,
 profit: 0,
 quantity: 0,
-invoiceCount: 0
+invoiceCount: 0,
+_freightInvoiceIds: new Set()
 };
 }
 
@@ -4310,6 +4326,14 @@ monthlyData[monthKey].revenue += qty * itemPrice;
 monthlyData[monthKey].totalCost += qty * asinCost;
 monthlyData[monthKey].quantity += qty;
 monthlyData[monthKey].invoiceCount += 1;
+
+// Accumulate freight cost per unique invoiceId (avoid double counting)
+if (item.invoiceId && !monthlyData[monthKey]._freightInvoiceIds.has(item.invoiceId)) {
+monthlyData[monthKey]._freightInvoiceIds.add(item.invoiceId);
+const freightCosts = state.freightCosts[state.selectedVendor] || {};
+const freight = parseFloat(freightCosts[item.invoiceId]) || 0;
+monthlyData[monthKey].freight += freight;
+}
 });
 
 // Add ad spend for each month
@@ -4362,15 +4386,19 @@ data.vretCogsCombined = data.vret + data.cogs;
 // Calculate profit (revenue - cost - adSpend)
 data.profit = data.revenue - data.totalCost - data.adSpend;
 
-// Calculate final profit (profit - vret - cogs)
-data.finalProfit = data.profit - data.vret - data.cogs;
+// Calculate final profit (profit - vret - cogs - freight)
+data.finalProfit = data.profit - data.vret - data.cogs - data.freight;
 
 data.marginPercent = data.revenue > 0 ? (data.profit / data.revenue) * 100 : 0;
 data.finalMarginPercent = data.revenue > 0 ? (data.finalProfit / data.revenue) * 100 : 0;
 data.roi = (data.totalCost + data.adSpend) > 0 ? (data.profit / (data.totalCost + data.adSpend)) * 100 : 0;
 });
 
-return Object.values(monthlyData).sort((a, b) => {
+// Clean up internal tracking Sets before returning
+const result = Object.values(monthlyData);
+result.forEach(d => delete d._freightInvoiceIds);
+
+return result.sort((a, b) => {
 if (a.year !== b.year) return b.year - a.year;
 return b.monthIndex - a.monthIndex;
 });
